@@ -1,5 +1,10 @@
 # Flutter-specific ProGuard rules
 
+# Ignore missing Play Core classes (not needed for non-Play Store builds)
+-dontwarn com.google.android.play.core.splitcompat.**
+-dontwarn com.google.android.play.core.splitinstall.**
+-dontwarn com.google.android.play.core.tasks.**
+
 # Keep Flutter classes
 -keep class io.flutter.** { *; }
 -keep class io.flutter.plugins.** { *; }
