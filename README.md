@@ -2,7 +2,7 @@
 
 **Partage sécurisé cross-platform avec chiffrement de bout en bout**
 
-AOwl est une application Flutter permettant de partager du texte et des images de manière sécurisée entre vos appareils Android et macOS, en utilisant GitHub comme stockage chiffré.
+AOwl est une application Flutter permettant de partager du texte et des images de manière sécurisée entre vos appareils Android et macOS, en utilisant GitHub comme stockage chiffré. Avec la suppression automatique des documents expirés et le vidage sécurisé du presse-papiers.
 
 ## Concept
 
@@ -40,6 +40,8 @@ AOwl résout un problème simple : comment partager facilement et en toute sécu
 - **Argon2id** : Dérivation de clé résistante aux attaques par force brute
 - **Zéro connaissance** : GitHub ne voit jamais vos données en clair
 - **PIN + Mot de passe** : Double protection pour l'accès à l'application
+- **Rétention automatique** : Suppression automatique des documents expirés
+- **Presse-papiers sécurisé** : Vidage automatique après 30 secondes
 
 ## Screenshots
 
@@ -123,6 +125,33 @@ Au premier lancement, l'application vous demandera :
 - Appuyez sur un élément dans la liste "Recent"
 - Le contenu est déchiffré et affiché
 - Vous pouvez copier le texte ou sauvegarder l'image
+
+### Rétention et suppression automatique
+
+AOwl permet de définir une période de rétention pour chaque document partagé. Les documents expirés sont automatiquement supprimés au lancement de l'application.
+
+| Période | Description |
+|---------|-------------|
+| 1 minute | Partage très temporaire |
+| 1 heure | Session de partage rapide |
+| **1 jour** | Par défaut - convient à la plupart des usages |
+| 1 semaine | Stockage court terme |
+| 1 mois | Stockage moyen terme |
+| 1 an | Stockage long terme |
+| 10 ans | Archivage |
+| Forever | Permanent - jamais supprimé automatiquement |
+
+**Fonctionnalités :**
+- Sélecteur de rétention lors du partage
+- Badge coloré indiquant le temps restant sur chaque élément
+- Modification de la période de rétention depuis la vue détaillée
+- Suppression automatique des documents expirés au lancement
+
+### Copier dans le presse-papiers
+
+- **Texte** : Appuyez sur l'icône de copie pour copier le texte déchiffré
+- **Images** : Appuyez sur l'icône de copie pour copier l'image dans le presse-papiers
+- **Sécurité** : Le presse-papiers est automatiquement vidé après 30 secondes
 
 ### Verrouiller l'application
 

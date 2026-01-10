@@ -1,11 +1,14 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:super_clipboard/super_clipboard.dart';
 
 import '../../features/exchange/domain/vault_entry.dart';
+import '../../features/exchange/presentation/widgets/retention_selector.dart';
 import '../../features/exchange/providers/vault_provider.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
@@ -145,6 +148,112 @@ class _EncryptedContentViewerState
     );
   }
 
+  Future<void> _copyImageToClipboard() async {
+    if (_decryptedContent == null || !widget.entry.isImage) return;
+
+    final clipboard = SystemClipboard.instance;
+    if (clipboard == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Clipboard not available on this platform'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+      return;
+    }
+
+    try {
+      final item = DataWriterItem();
+
+      // Determine format based on mime type
+      final mimeType = widget.entry.mimeType ?? 'image/png';
+      if (mimeType.contains('png')) {
+        item.add(Formats.png(_decryptedContent!));
+      } else if (mimeType.contains('jpeg') || mimeType.contains('jpg')) {
+        item.add(Formats.jpeg(_decryptedContent!));
+      } else {
+        // Default to PNG
+        item.add(Formats.png(_decryptedContent!));
+      }
+
+      await clipboard.write([item]);
+
+      setState(() => _copiedToClipboard = true);
+
+      // Auto-clear clipboard after duration
+      _clipboardClearTimer?.cancel();
+      _clipboardClearTimer = Timer(_clipboardClearDuration, () async {
+        try {
+          await clipboard.write([]); // Clear clipboard
+        } catch (e) {
+          debugPrint('[EncryptedContentViewer] Failed to clear clipboard: $e');
+        }
+        if (mounted) {
+          setState(() => _copiedToClipboard = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Clipboard cleared for security'),
+              backgroundColor: AppColors.info,
+            ),
+          );
+        }
+      });
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Image copied! Will clear in ${_clipboardClearDuration.inSeconds}s',
+          ),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } catch (e) {
+      debugPrint('[EncryptedContentViewer] Failed to copy image: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to copy image: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showChangeRetentionDialog() async {
+    final currentPeriod = widget.entry.retentionPeriod ?? RetentionPeriod.oneDay;
+
+    final result = await showModalBottomSheet<RetentionPeriod>(
+      context: context,
+      backgroundColor: AppColors.backgroundCard,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => _RetentionPickerSheet(selected: currentPeriod),
+    );
+
+    if (result != null && result != currentPeriod) {
+      await ref.read(vaultNotifierProvider.notifier).changeRetention(
+            widget.entry.id,
+            result,
+          );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Retention changed to ${result.label}'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+
+      // Close the viewer and refresh
+      Navigator.pop(context);
+    }
+  }
+
   Future<void> _shareContent() async {
     if (_decryptedContent == null) return;
 
@@ -197,9 +306,60 @@ class _EncryptedContentViewerState
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    Text(
-                      '${widget.entry.formattedSize} • ${_formatDate(widget.entry.updatedAt)}',
-                      style: AppTypography.bodySmall,
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Text(
+                          '${widget.entry.formattedSize} • ${_formatDate(widget.entry.updatedAt)}',
+                          style: AppTypography.bodySmall,
+                        ),
+                        if (widget.entry.retentionPeriod != null) ...[
+                          const SizedBox(width: 8),
+                          InkWell(
+                            onTap: _showChangeRetentionDialog,
+                            borderRadius: BorderRadius.circular(4),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: RetentionSelector.colorFor(widget.entry.retentionPeriod!)
+                                    .withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.timer_outlined,
+                                    size: 10,
+                                    color: RetentionSelector.colorFor(
+                                        widget.entry.retentionPeriod!),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    widget.entry.formattedTimeRemaining ??
+                                        widget.entry.retentionPeriod!.label,
+                                    style: AppTypography.labelSmall.copyWith(
+                                      color: RetentionSelector.colorFor(
+                                          widget.entry.retentionPeriod!),
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Icon(
+                                    Icons.edit,
+                                    size: 8,
+                                    color: RetentionSelector.colorFor(
+                                        widget.entry.retentionPeriod!),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ],
                 ),
@@ -226,10 +386,27 @@ class _EncryptedContentViewerState
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
+                  // Copy button for text
                   if (widget.entry.isText) ...[
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: _copyToClipboard,
+                        icon: Icon(
+                          _copiedToClipboard
+                              ? Icons.check_rounded
+                              : Icons.copy_rounded,
+                          size: 18,
+                        ),
+                        label: Text(_copiedToClipboard ? 'Copied!' : 'Copy'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+                  // Copy button for images
+                  if (widget.entry.isImage) ...[
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _copyImageToClipboard,
                         icon: Icon(
                           _copiedToClipboard
                               ? Icons.check_rounded
@@ -425,6 +602,98 @@ class _ImageContentViewState extends State<_ImageContentView> {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Bottom sheet for selecting a retention period.
+class _RetentionPickerSheet extends StatelessWidget {
+  const _RetentionPickerSheet({required this.selected});
+
+  final RetentionPeriod selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.borderSubtle,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Title
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.timer_outlined,
+                    color: AppColors.primary,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Change Retention Period',
+                    style: AppTypography.titleMedium,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                'Select how long to keep this document',
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Options
+            ...RetentionPeriod.values.map((period) => _buildOption(context, period)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOption(BuildContext context, RetentionPeriod period) {
+    final isSelected = period == selected;
+    final color = RetentionSelector.colorFor(period);
+    final icon = RetentionSelector.iconFor(period);
+
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: isSelected ? 0.2 : 0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, color: color, size: 20),
+      ),
+      title: Text(
+        period.label,
+        style: AppTypography.bodyMedium.copyWith(
+          color: isSelected ? color : AppColors.textPrimary,
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+        ),
+      ),
+      trailing: isSelected
+          ? Icon(Icons.check_circle, color: color, size: 24)
+          : null,
+      onTap: () => Navigator.pop(context, period),
     );
   }
 }

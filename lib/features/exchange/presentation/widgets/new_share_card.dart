@@ -7,7 +7,9 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_typography.dart';
+import '../../domain/vault_entry.dart';
 import '../../providers/vault_provider.dart';
+import 'retention_selector.dart';
 
 /// Card for creating new shared content (text or image).
 class NewShareCard extends ConsumerStatefulWidget {
@@ -25,6 +27,7 @@ class _NewShareCardState extends ConsumerState<NewShareCard>
   XFile? _selectedImage;
   Uint8List? _imageBytes;
   bool _isSharing = false;
+  RetentionPeriod _retentionPeriod = RetentionPeriod.defaultPeriod;
 
   static const int _maxTextLength = 100000; // 100KB text limit
 
@@ -106,12 +109,14 @@ class _NewShareCardState extends ConsumerState<NewShareCard>
       await ref.read(vaultNotifierProvider.notifier).shareText(
             label: label,
             content: text,
+            retentionPeriod: _retentionPeriod,
           );
 
       if (!mounted) return;
 
       _textController.clear();
       _labelController.clear();
+      setState(() => _retentionPeriod = RetentionPeriod.defaultPeriod);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -168,6 +173,7 @@ class _NewShareCardState extends ConsumerState<NewShareCard>
             label: label,
             imageData: _imageBytes!,
             mimeType: mimeType,
+            retentionPeriod: _retentionPeriod,
           );
       debugPrint('[NewShareCard] shareImage completed successfully');
 
@@ -175,6 +181,7 @@ class _NewShareCardState extends ConsumerState<NewShareCard>
 
       _clearImage();
       _labelController.clear();
+      setState(() => _retentionPeriod = RetentionPeriod.defaultPeriod);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -309,14 +316,13 @@ class _NewShareCardState extends ConsumerState<NewShareCard>
           ),
           const SizedBox(height: 8),
 
-          // Character count and share button
+          // Retention selector and share button
           Row(
             children: [
-              Text(
-                '$charCount / $_maxTextLength',
-                style: AppTypography.labelSmall.copyWith(
-                  color: isOverLimit ? AppColors.error : AppColors.textTertiary,
-                ),
+              RetentionSelector(
+                selected: _retentionPeriod,
+                onChanged: (period) => setState(() => _retentionPeriod = period),
+                compact: true,
               ),
               const Spacer(),
               ElevatedButton.icon(
@@ -346,14 +352,26 @@ class _NewShareCardState extends ConsumerState<NewShareCard>
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          // Label input
-          TextField(
-            controller: _labelController,
-            decoration: const InputDecoration(
-              hintText: 'Label (optional)',
-              prefixIcon: Icon(Icons.label_outline, size: 20),
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            ),
+          // Label and retention selector row
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _labelController,
+                  decoration: const InputDecoration(
+                    hintText: 'Label (optional)',
+                    prefixIcon: Icon(Icons.label_outline, size: 20),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              RetentionSelector(
+                selected: _retentionPeriod,
+                onChanged: (period) => setState(() => _retentionPeriod = period),
+                compact: true,
+              ),
+            ],
           ),
           const SizedBox(height: 12),
 

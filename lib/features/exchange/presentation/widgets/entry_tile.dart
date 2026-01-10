@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_typography.dart';
 import '../../domain/vault_entry.dart';
+import 'retention_selector.dart';
 
 /// Tile widget displaying a vault entry.
 class EntryTile extends StatelessWidget {
@@ -124,6 +125,12 @@ class EntryTile extends StatelessWidget {
                           ],
                         ],
                       ),
+
+                      // Retention badge (if set)
+                      if (entry.retentionPeriod != null) ...[
+                        const SizedBox(height: 4),
+                        _RetentionBadge(entry: entry),
+                      ],
                     ],
                   ),
                 ),
@@ -287,5 +294,54 @@ class EntryListTile extends StatelessWidget {
     } else {
       return '${time.month}/${time.day}';
     }
+  }
+}
+
+/// Badge showing retention period and time remaining.
+class _RetentionBadge extends StatelessWidget {
+  const _RetentionBadge({required this.entry});
+
+  final VaultEntry entry;
+
+  @override
+  Widget build(BuildContext context) {
+    final period = entry.retentionPeriod;
+    if (period == null) return const SizedBox.shrink();
+
+    final remaining = entry.timeRemaining;
+    final formattedRemaining = entry.formattedTimeRemaining;
+    final color = _getColor(remaining);
+    final icon = RetentionSelector.iconFor(period);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 10, color: color),
+          const SizedBox(width: 4),
+          Text(
+            formattedRemaining ?? period.label,
+            style: AppTypography.labelSmall.copyWith(
+              color: color,
+              fontSize: 10,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getColor(Duration? remaining) {
+    if (remaining == null) return AppColors.textTertiary;
+    if (remaining == Duration.zero) return AppColors.error;
+    if (remaining.inHours < 1) return AppColors.error;
+    if (remaining.inHours < 24) return AppColors.warning;
+    if (remaining.inDays < 7) return AppColors.info;
+    return AppColors.textTertiary;
   }
 }

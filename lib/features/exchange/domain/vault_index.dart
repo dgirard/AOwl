@@ -15,7 +15,9 @@ class VaultIndex {
   /// Last modification timestamp.
   final DateTime updatedAt;
 
-  static const int currentVersion = 1;
+  /// Schema version 2 adds retention_period field to entries.
+  /// Version 1 entries get null retention (never expires) for backward compatibility.
+  static const int currentVersion = 2;
 
   VaultIndex({
     this.version = currentVersion,
@@ -159,6 +161,29 @@ class VaultIndex {
       version: version,
       entries: merged.values.toList(),
     );
+  }
+
+  /// Returns all expired entries.
+  List<VaultEntry> get expiredEntries {
+    return entries.where((e) => e.isExpired).toList();
+  }
+
+  /// Removes multiple entries by ID and returns updated index.
+  VaultIndex removeEntries(Iterable<String> ids) {
+    final idSet = ids.toSet();
+    return VaultIndex(
+      version: version,
+      entries: entries.where((e) => !idSet.contains(e.id)).toList(),
+    );
+  }
+
+  /// Returns entries that will expire within the given duration.
+  List<VaultEntry> entriesExpiringWithin(Duration duration) {
+    final threshold = DateTime.now().toUtc().add(duration);
+    return entries.where((e) {
+      final expiresAt = e.expiresAt;
+      return expiresAt != null && expiresAt.isBefore(threshold);
+    }).toList();
   }
 
   @override

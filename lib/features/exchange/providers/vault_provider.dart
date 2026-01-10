@@ -9,6 +9,7 @@ import '../../../core/crypto/crypto_service.dart';
 import '../../../core/github/github_auth.dart';
 import '../../../core/github/github_errors.dart';
 import '../../../core/github/vault_repository.dart';
+import '../../../core/services/cleanup_service.dart';
 import '../../../core/storage/local_cache_service.dart';
 import '../../../core/storage/secure_storage_service.dart';
 import '../../../core/utils/result.dart';
@@ -220,6 +221,9 @@ class VaultNotifier extends AsyncNotifier<VaultState> {
         lastSyncAt: DateTime.now(),
       ));
       debugPrint('[VaultProvider] sync() completed successfully');
+
+      // Cleanup expired entries after sync
+      await _cleanupExpiredEntries(index, sha);
     } catch (e, stack) {
       debugPrint('[VaultProvider] Exception during sync: $e');
       debugPrint('[VaultProvider] Stack: $stack');
@@ -227,16 +231,62 @@ class VaultNotifier extends AsyncNotifier<VaultState> {
     }
   }
 
+  /// Cleans up expired entries after sync.
+  Future<void> _cleanupExpiredEntries(VaultIndex index, String? indexSha) async {
+    if (_masterKey == null || _repository == null || indexSha == null) {
+      debugPrint('[VaultProvider] Cannot cleanup: missing key, repo, or SHA');
+      return;
+    }
+
+    // Check if there are expired entries
+    final expired = index.expiredEntries;
+    if (expired.isEmpty) {
+      debugPrint('[VaultProvider] No expired entries to cleanup');
+      return;
+    }
+
+    debugPrint('[VaultProvider] Found ${expired.length} expired entries, cleaning up...');
+
+    try {
+      final cleanupService = CleanupService(
+        repository: _repository!,
+        crypto: _crypto,
+      );
+
+      final result = await cleanupService.cleanupExpiredEntries(
+        index: index,
+        masterKey: _masterKey!,
+        indexSha: indexSha,
+      );
+
+      if (result.hasDeleted) {
+        debugPrint('[VaultProvider] Cleaned up ${result.deleted} expired entries');
+
+        // Re-sync to get updated index
+        await sync();
+      }
+
+      if (result.hasRemaining) {
+        debugPrint('[VaultProvider] ${result.remaining} entries remaining for next cleanup');
+      }
+    } catch (e) {
+      debugPrint('[VaultProvider] Cleanup error: $e');
+      // Don't fail sync if cleanup fails
+    }
+  }
+
   /// Shares a text entry.
   Future<void> shareText({
     required String label,
     required String content,
+    RetentionPeriod? retentionPeriod,
   }) async {
     await _shareEntry(
       type: EntryType.text,
       label: label,
       content: Uint8List.fromList(utf8.encode(content)),
       mimeType: 'text/plain',
+      retentionPeriod: retentionPeriod,
     );
   }
 
@@ -245,6 +295,7 @@ class VaultNotifier extends AsyncNotifier<VaultState> {
     required String label,
     required Uint8List imageData,
     required String mimeType,
+    RetentionPeriod? retentionPeriod,
   }) async {
     debugPrint('[VaultProvider] shareImage called: label="$label", size=${imageData.length}, mimeType=$mimeType');
     await _shareEntry(
@@ -252,6 +303,7 @@ class VaultNotifier extends AsyncNotifier<VaultState> {
       label: label,
       content: imageData,
       mimeType: mimeType,
+      retentionPeriod: retentionPeriod,
     );
     debugPrint('[VaultProvider] shareImage completed');
   }
@@ -262,6 +314,7 @@ class VaultNotifier extends AsyncNotifier<VaultState> {
     required String label,
     required Uint8List content,
     String? mimeType,
+    RetentionPeriod? retentionPeriod,
   }) async {
     debugPrint('[VaultProvider] _shareEntry called: type=$type, label="$label", size=${content.length}');
 
@@ -310,6 +363,7 @@ class VaultNotifier extends AsyncNotifier<VaultState> {
         label: label,
         mimeType: mimeType,
         sizeBytes: encryptedContent.length,
+        retentionPeriod: retentionPeriod,
       );
 
       state = const AsyncValue.data(VaultStateSyncing(
@@ -380,6 +434,52 @@ class VaultNotifier extends AsyncNotifier<VaultState> {
       await _cache.removeCachedEntry(entryId);
       await _cache.removeCachedEncryptedFile(entryId);
     } catch (e) {
+      state = AsyncValue.data(VaultStateError(VaultNetworkError(e.toString())));
+    }
+  }
+
+  /// Changes the retention period of an entry.
+  Future<void> changeRetention(String entryId, RetentionPeriod newPeriod) async {
+    if (_masterKey == null || _repository == null) {
+      debugPrint('[VaultProvider] changeRetention: Not authenticated');
+      return;
+    }
+
+    final currentState = state.valueOrNull;
+    if (currentState is! VaultStateSynced) {
+      debugPrint('[VaultProvider] changeRetention: Vault not synced');
+      return;
+    }
+
+    final entry = currentState.index.getEntry(entryId);
+    if (entry == null) {
+      state = AsyncValue.data(VaultStateError(VaultEntryNotFoundError(entryId)));
+      return;
+    }
+
+    debugPrint('[VaultProvider] changeRetention: Updating ${entry.label} to ${newPeriod.label}');
+
+    state = const AsyncValue.data(VaultStateSyncing(
+      message: 'Updating retention...',
+      operation: SyncOperation.syncing,
+    ));
+
+    try {
+      // Update entry with new retention period
+      final updatedEntry = entry.copyWith(
+        retentionPeriod: newPeriod,
+        updatedAt: DateTime.now().toUtc(),
+      );
+
+      // Update index
+      final newIndex = currentState.index.updateEntry(updatedEntry);
+
+      // Upload updated index
+      await _uploadIndex(newIndex, currentState.indexSha);
+
+      debugPrint('[VaultProvider] changeRetention: Successfully updated');
+    } catch (e) {
+      debugPrint('[VaultProvider] changeRetention: Error $e');
       state = AsyncValue.data(VaultStateError(VaultNetworkError(e.toString())));
     }
   }

@@ -1,20 +1,20 @@
-import 'package:ashare/app.dart';
+import 'package:aowl/app.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
-/// Integration tests for AShare app.
+/// Integration tests for AOwl app.
 ///
 /// These tests verify the app can launch and navigate correctly.
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  group('AShare App Integration Tests', () {
+  group('AOwl App Integration Tests', () {
     testWidgets('app launches successfully', (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
-          child: AShareApp(),
+          child: AOwlApp(),
         ),
       );
 
@@ -22,13 +22,13 @@ void main() {
       await tester.pumpAndSettle(const Duration(seconds: 2));
 
       // App should be rendered
-      expect(find.byType(AShareApp), findsOneWidget);
+      expect(find.byType(AOwlApp), findsOneWidget);
     });
 
     testWidgets('app has material app structure', (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
-          child: AShareApp(),
+          child: AOwlApp(),
         ),
       );
 
@@ -41,7 +41,7 @@ void main() {
     testWidgets('app shows some form of content', (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
-          child: AShareApp(),
+          child: AOwlApp(),
         ),
       );
 
