@@ -41,6 +41,14 @@ AOwl résout un problème simple : comment partager facilement et en toute sécu
 - **Zéro connaissance** : GitHub ne voit jamais vos données en clair
 - **PIN + Mot de passe** : Double protection pour l'accès à l'application
 
+## Screenshots
+
+<p align="center">
+  <img src="assets/screenshots/android_exchange.png" alt="AOwl Exchange Screen" width="300"/>
+</p>
+
+*Écran principal d'AOwl sur Android : synchronisation, partage de texte/images, et liste des éléments récents chiffrés.*
+
 ## Installation
 
 ### Prérequis
