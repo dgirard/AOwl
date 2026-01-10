@@ -1,5 +1,5 @@
-import 'package:aowl/features/exchange/domain/vault_entry.dart';
-import 'package:aowl/features/exchange/domain/vault_index.dart';
+import 'package:aowl/domain/models/vault_entry.dart';
+import 'package:aowl/domain/models/vault_index.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

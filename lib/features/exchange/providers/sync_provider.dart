@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../domain/vault_index.dart';
+import '../../../domain/models/vault_index.dart';
 import 'vault_provider.dart';
 import 'vault_state.dart';
 

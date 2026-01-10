@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 
-import '../../features/exchange/domain/vault_entry.dart';
+import '../../domain/models/vault_entry.dart';
 import '../../features/exchange/presentation/widgets/retention_selector.dart';
 import '../../features/exchange/providers/vault_provider.dart';
 import '../theme/app_colors.dart';

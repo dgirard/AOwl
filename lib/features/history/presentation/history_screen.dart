@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/theme/app_colors.dart';
 import '../../../shared/theme/app_typography.dart';
 import '../../../shared/widgets/encrypted_content_viewer.dart';
-import '../../exchange/domain/vault_entry.dart';
+import '../../../domain/models/vault_entry.dart';
 import '../../exchange/presentation/widgets/entry_tile.dart';
 import '../../exchange/providers/sync_provider.dart';
 import '../../exchange/providers/vault_provider.dart';

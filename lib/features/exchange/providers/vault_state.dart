@@ -1,4 +1,4 @@
-import '../domain/vault_index.dart';
+import '../../../domain/models/vault_index.dart';
 
 /// Sealed hierarchy of vault states.
 sealed class VaultState {

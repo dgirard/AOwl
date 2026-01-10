@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_typography.dart';
-import '../../domain/vault_entry.dart';
+import '../../../../domain/models/vault_entry.dart';
 import 'retention_selector.dart';
 
 /// Tile widget displaying a vault entry.

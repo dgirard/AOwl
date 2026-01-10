@@ -9,7 +9,7 @@ import '../../../shared/theme/app_typography.dart';
 import '../../../shared/widgets/animated_list_item.dart';
 import '../../../shared/widgets/encrypted_content_viewer.dart';
 import '../../../shared/widgets/progress_overlay.dart';
-import '../domain/vault_entry.dart';
+import '../../../domain/models/vault_entry.dart';
 import '../providers/sync_provider.dart';
 import '../providers/vault_provider.dart';
 import '../providers/vault_state.dart';

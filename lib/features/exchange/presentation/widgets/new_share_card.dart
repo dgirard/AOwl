@@ -7,7 +7,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_typography.dart';
-import '../../domain/vault_entry.dart';
+import '../../../../domain/models/vault_entry.dart';
 import '../../providers/vault_provider.dart';
 import 'retention_selector.dart';
 

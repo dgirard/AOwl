@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 
-import '../../features/exchange/domain/vault_index.dart';
-import '../crypto/crypto_service.dart';
-import '../github/vault_repository.dart';
+import '../../core/crypto/crypto_service.dart';
+import '../../core/github/vault_repository.dart';
+import '../../domain/models/vault_index.dart';
 
 /// Result of a cleanup operation.
 class CleanupResult {

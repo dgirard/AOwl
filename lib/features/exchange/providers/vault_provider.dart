@@ -5,24 +5,20 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../application/providers/core_providers.dart';
 import '../../../core/crypto/crypto_service.dart';
 import '../../../core/github/github_auth.dart';
 import '../../../core/github/github_errors.dart';
 import '../../../core/github/vault_repository.dart';
-import '../../../core/services/cleanup_service.dart';
+import '../../../application/services/cleanup_service.dart';
 import '../../../core/storage/local_cache_service.dart';
 import '../../../core/storage/secure_storage_service.dart';
 import '../../../core/utils/result.dart';
 import '../../unlock/providers/auth_provider.dart';
 import '../../unlock/providers/auth_state.dart';
-import '../domain/vault_entry.dart';
-import '../domain/vault_index.dart';
+import '../../../domain/models/vault_entry.dart';
+import '../../../domain/models/vault_index.dart';
 import 'vault_state.dart';
-
-/// Provider for the local cache service.
-final localCacheProvider = Provider<LocalCacheService>((ref) {
-  return LocalCacheService();
-});
 
 /// Provider for the vault repository (GitHub API).
 /// Note: This returns null because initialization is async and handled by VaultNotifier.
