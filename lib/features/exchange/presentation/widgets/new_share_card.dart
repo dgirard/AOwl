@@ -24,6 +24,7 @@ class _NewShareCardState extends ConsumerState<NewShareCard>
   late TabController _tabController;
   final _textController = TextEditingController();
   final _labelController = TextEditingController();
+  final _customIdController = TextEditingController();
   XFile? _selectedImage;
   Uint8List? _imageBytes;
   bool _isSharing = false;
@@ -42,6 +43,7 @@ class _NewShareCardState extends ConsumerState<NewShareCard>
     _tabController.dispose();
     _textController.dispose();
     _labelController.dispose();
+    _customIdController.dispose();
     super.dispose();
   }
 
@@ -103,12 +105,17 @@ class _NewShareCardState extends ConsumerState<NewShareCard>
         ? 'Text note'
         : _labelController.text.trim();
 
+    final customId = _customIdController.text.trim().isEmpty
+        ? null
+        : _customIdController.text.trim();
+
     setState(() => _isSharing = true);
 
     try {
       await ref.read(vaultNotifierProvider.notifier).shareText(
             label: label,
             content: text,
+            customId: customId,
             retentionPeriod: _retentionPeriod,
           );
 
@@ -116,6 +123,7 @@ class _NewShareCardState extends ConsumerState<NewShareCard>
 
       _textController.clear();
       _labelController.clear();
+      _customIdController.clear();
       setState(() => _retentionPeriod = RetentionPeriod.defaultPeriod);
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -153,6 +161,10 @@ class _NewShareCardState extends ConsumerState<NewShareCard>
         ? 'Image'
         : _labelController.text.trim();
 
+    final customId = _customIdController.text.trim().isEmpty
+        ? null
+        : _customIdController.text.trim();
+
     // Determine MIME type from extension
     final ext = _selectedImage!.path.split('.').last.toLowerCase();
     final mimeType = switch (ext) {
@@ -173,6 +185,7 @@ class _NewShareCardState extends ConsumerState<NewShareCard>
             label: label,
             imageData: _imageBytes!,
             mimeType: mimeType,
+            customId: customId,
             retentionPeriod: _retentionPeriod,
           );
       debugPrint('[NewShareCard] shareImage completed successfully');
@@ -181,6 +194,7 @@ class _NewShareCardState extends ConsumerState<NewShareCard>
 
       _clearImage();
       _labelController.clear();
+      _customIdController.clear();
       setState(() => _retentionPeriod = RetentionPeriod.defaultPeriod);
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -287,15 +301,35 @@ class _NewShareCardState extends ConsumerState<NewShareCard>
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          // Label input
-          TextField(
-            controller: _labelController,
-            decoration: const InputDecoration(
-              hintText: 'Label (optional)',
-              prefixIcon: Icon(Icons.label_outline, size: 20),
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            ),
-            textInputAction: TextInputAction.next,
+          // Label and Custom ID row
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: TextField(
+                  controller: _labelController,
+                  decoration: const InputDecoration(
+                    hintText: 'Label (optional)',
+                    prefixIcon: Icon(Icons.label_outline, size: 20),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
+                  textInputAction: TextInputAction.next,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 1,
+                child: TextField(
+                  controller: _customIdController,
+                  decoration: const InputDecoration(
+                    hintText: 'ID (optional)',
+                    prefixIcon: Icon(Icons.tag, size: 18),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
+                  textInputAction: TextInputAction.next,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
 
@@ -352,15 +386,28 @@ class _NewShareCardState extends ConsumerState<NewShareCard>
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          // Label and retention selector row
+          // Label, Custom ID, and retention selector row
           Row(
             children: [
               Expanded(
+                flex: 2,
                 child: TextField(
                   controller: _labelController,
                   decoration: const InputDecoration(
                     hintText: 'Label (optional)',
                     prefixIcon: Icon(Icons.label_outline, size: 20),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 1,
+                child: TextField(
+                  controller: _customIdController,
+                  decoration: const InputDecoration(
+                    hintText: 'ID',
+                    prefixIcon: Icon(Icons.tag, size: 18),
                     contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   ),
                 ),

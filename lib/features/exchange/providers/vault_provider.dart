@@ -275,6 +275,7 @@ class VaultNotifier extends AsyncNotifier<VaultState> {
   Future<void> shareText({
     required String label,
     required String content,
+    String? customId,
     RetentionPeriod? retentionPeriod,
   }) async {
     await _shareEntry(
@@ -282,6 +283,7 @@ class VaultNotifier extends AsyncNotifier<VaultState> {
       label: label,
       content: Uint8List.fromList(utf8.encode(content)),
       mimeType: 'text/plain',
+      customId: customId,
       retentionPeriod: retentionPeriod,
     );
   }
@@ -291,6 +293,7 @@ class VaultNotifier extends AsyncNotifier<VaultState> {
     required String label,
     required Uint8List imageData,
     required String mimeType,
+    String? customId,
     RetentionPeriod? retentionPeriod,
   }) async {
     debugPrint('[VaultProvider] shareImage called: label="$label", size=${imageData.length}, mimeType=$mimeType');
@@ -299,6 +302,7 @@ class VaultNotifier extends AsyncNotifier<VaultState> {
       label: label,
       content: imageData,
       mimeType: mimeType,
+      customId: customId,
       retentionPeriod: retentionPeriod,
     );
     debugPrint('[VaultProvider] shareImage completed');
@@ -310,6 +314,7 @@ class VaultNotifier extends AsyncNotifier<VaultState> {
     required String label,
     required Uint8List content,
     String? mimeType,
+    String? customId,
     RetentionPeriod? retentionPeriod,
   }) async {
     debugPrint('[VaultProvider] _shareEntry called: type=$type, label="$label", size=${content.length}');
@@ -357,6 +362,7 @@ class VaultNotifier extends AsyncNotifier<VaultState> {
       final entry = VaultEntry.create(
         type: type,
         label: label,
+        customId: customId,
         mimeType: mimeType,
         sizeBytes: encryptedContent.length,
         retentionPeriod: retentionPeriod,

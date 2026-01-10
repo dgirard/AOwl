@@ -76,6 +76,31 @@ class EntryTile extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
+
+                      // Custom ID (if set)
+                      if (entry.customId != null) ...[
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.tag,
+                              size: 12,
+                              color: AppColors.textSecondary,
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                entry.customId!,
+                                style: AppTypography.labelSmall.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                       const SizedBox(height: 4),
 
                       // Metadata row
@@ -270,7 +295,9 @@ class EntryListTile extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
       ),
       subtitle: Text(
-        '${entry.formattedSize} • ${_formatDate(entry.updatedAt)}',
+        entry.customId != null
+            ? '${entry.customId} • ${entry.formattedSize}'
+            : '${entry.formattedSize} • ${_formatDate(entry.updatedAt)}',
         style: AppTypography.bodySmall,
       ),
       trailing: trailing ??

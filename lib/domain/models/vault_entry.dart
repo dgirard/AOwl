@@ -58,6 +58,10 @@ class VaultEntry {
   /// Unique identifier (UUID v4).
   final String id;
 
+  /// Optional custom identifier provided by the user.
+  /// Can be used for easier retrieval (e.g., "gmail-password", "photo-2024").
+  final String? customId;
+
   /// Filename in the vault (e.g., "{id}.enc").
   final String filename;
 
@@ -88,6 +92,7 @@ class VaultEntry {
 
   VaultEntry({
     required this.id,
+    this.customId,
     required this.filename,
     required this.type,
     required this.label,
@@ -103,6 +108,7 @@ class VaultEntry {
   factory VaultEntry.create({
     required EntryType type,
     required String label,
+    String? customId,
     String? mimeType,
     required int sizeBytes,
     RetentionPeriod? retentionPeriod,
@@ -111,6 +117,7 @@ class VaultEntry {
     final now = DateTime.now().toUtc();
     return VaultEntry(
       id: id,
+      customId: customId?.trim().isNotEmpty == true ? customId!.trim() : null,
       filename: '$id.enc',
       type: type,
       label: label,
@@ -127,6 +134,7 @@ class VaultEntry {
     final retentionCode = json['retention_period'] as String?;
     return VaultEntry(
       id: json['id'] as String,
+      customId: json['custom_id'] as String?,
       filename: json['filename'] as String,
       type: EntryType.fromJson(json['type'] as String),
       label: json['label'] as String,
@@ -144,6 +152,7 @@ class VaultEntry {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      if (customId != null) 'custom_id': customId,
       'filename': filename,
       'type': type.toJson(),
       'label': label,
@@ -159,6 +168,7 @@ class VaultEntry {
   /// Creates a copy with updated fields.
   VaultEntry copyWith({
     String? id,
+    String? customId,
     String? filename,
     EntryType? type,
     String? label,
@@ -171,6 +181,7 @@ class VaultEntry {
   }) {
     return VaultEntry(
       id: id ?? this.id,
+      customId: customId ?? this.customId,
       filename: filename ?? this.filename,
       type: type ?? this.type,
       label: label ?? this.label,
@@ -262,5 +273,5 @@ class VaultEntry {
   int get hashCode => id.hashCode;
 
   @override
-  String toString() => 'VaultEntry($id, $label, $type)';
+  String toString() => 'VaultEntry($id${customId != null ? ', customId: $customId' : ''}, $label, $type)';
 }
