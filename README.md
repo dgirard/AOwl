@@ -53,7 +53,7 @@ AOwl résout un problème simple : comment partager facilement et en toute sécu
 
 ```bash
 # Cloner le projet
-git clone https://github.com/dgirard/AOwl.git
+git clone https://github.com/your-username/AOwl.git
 cd AOwl
 
 # Installer les dépendances
@@ -92,7 +92,7 @@ Au premier lancement, l'application vous demandera :
 
 | Champ | Description | Exemple |
 |-------|-------------|---------|
-| Owner/Organization | Votre nom d'utilisateur GitHub | `dgirard` |
+| Owner/Organization | Votre nom d'utilisateur GitHub | `votre-username` |
 | Repository Name | Le nom du dépôt créé | `my-vault` |
 | Personal Access Token | Le token généré | `ghp_xxxx...` |
 | Master Password | Mot de passe principal (12+ caractères) | Gardez-le précieusement ! |
