@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:ashare/features/unlock/providers/auth_state.dart';
+import 'package:aowl/features/unlock/providers/auth_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

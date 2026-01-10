@@ -1,4 +1,4 @@
-import 'package:ashare/core/github/rate_limit_tracker.dart';
+import 'package:aowl/core/github/rate_limit_tracker.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

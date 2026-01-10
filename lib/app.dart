@@ -5,9 +5,9 @@ import 'router/app_router.dart';
 import 'shared/services/app_lifecycle_service.dart';
 import 'shared/theme/app_theme.dart';
 
-/// The main AShare application widget.
-class AShareApp extends ConsumerWidget {
-  const AShareApp({super.key});
+/// The main AOwl application widget.
+class AOwlApp extends ConsumerWidget {
+  const AOwlApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -15,7 +15,7 @@ class AShareApp extends ConsumerWidget {
 
     return ActivityTracker(
       child: MaterialApp.router(
-        title: 'AShare',
+        title: 'AOwl',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.dark,
         routerConfig: router,

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../core/storage/secure_storage_service.dart';
 import '../../../shared/theme/app_colors.dart';
 import '../../../shared/theme/app_typography.dart';
 import '../../unlock/providers/auth_provider.dart';
@@ -46,7 +48,7 @@ class SettingsScreen extends ConsumerWidget {
             icon: Icons.cloud_outlined,
             title: 'GitHub Repository',
             subtitle: 'Manage your vault storage',
-            onTap: () {},
+            onTap: () => _showGitHubSettingsDialog(context, ref),
           ),
           _SettingsTile(
             icon: Icons.storage_outlined,
@@ -61,7 +63,7 @@ class SettingsScreen extends ConsumerWidget {
           _SectionHeader(title: 'About'),
           _SettingsTile(
             icon: Icons.info_outline_rounded,
-            title: 'About AShare',
+            title: 'About AOwl',
             subtitle: 'Version 1.0.0',
             onTap: () => _showAboutDialog(context),
           ),
@@ -126,6 +128,73 @@ class SettingsScreen extends ConsumerWidget {
     ref.read(authNotifierProvider.notifier).lock();
   }
 
+  void _showGitHubSettingsDialog(BuildContext context, WidgetRef ref) async {
+    final storage = ref.read(secureStorageProvider);
+    final currentOwner = await storage.getRepoOwner() ?? '';
+    final currentName = await storage.getRepoName() ?? '';
+
+    if (!context.mounted) return;
+
+    final ownerController = TextEditingController(text: currentOwner);
+    final nameController = TextEditingController(text: currentName);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('GitHub Repository'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: ownerController,
+              decoration: const InputDecoration(
+                labelText: 'Repository Owner',
+                hintText: 'e.g., dgirard',
+              ),
+              autocorrect: false,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: 'Repository Name',
+                hintText: 'e.g., aowl',
+              ),
+              autocorrect: false,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final newOwner = ownerController.text.trim();
+              final newName = nameController.text.trim();
+
+              if (newOwner.isNotEmpty && newName.isNotEmpty) {
+                await storage.setRepoOwner(newOwner);
+                await storage.setRepoName(newName);
+
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('GitHub settings updated. Please restart the app.'),
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showClearCacheDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -159,20 +228,16 @@ class SettingsScreen extends ConsumerWidget {
       builder: (context) => AlertDialog(
         title: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                gradient: AppColors.primaryGradient,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(
-                Icons.shield_outlined,
-                color: AppColors.background,
-                size: 24,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: SvgPicture.asset(
+                'assets/logo/aowl_logo.svg',
+                width: 40,
+                height: 40,
               ),
             ),
             const SizedBox(width: 12),
-            const Text('AShare'),
+            const Text('AOwl'),
           ],
         ),
         content: Column(

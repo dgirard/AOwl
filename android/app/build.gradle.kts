@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.ashare.ashare"
+    namespace = "com.aowl.aowl"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -20,9 +20,9 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.ashare.ashare"
+        applicationId = "com.aowl.aowl"
         // minSdk 23 required for Android Keystore (flutter_secure_storage)
-        minSdk = 23
+        minSdk = flutter.minSdkVersion
         targetSdk = 34
         versionCode = flutter.versionCode
         versionName = flutter.versionName

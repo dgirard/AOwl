@@ -30,7 +30,7 @@ Future<void> main() async {
 
   runApp(
     const ProviderScope(
-      child: AShareApp(),
+      child: AOwlApp(),
     ),
   );
 }

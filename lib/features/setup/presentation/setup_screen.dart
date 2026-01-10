@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../shared/theme/app_colors.dart';
 import '../../../shared/theme/app_typography.dart';
@@ -94,22 +95,17 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                       Center(
                         child: Column(
                           children: [
-                            Container(
-                              width: 80,
-                              height: 80,
-                              decoration: BoxDecoration(
-                                gradient: AppColors.primaryGradient,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: const Icon(
-                                Icons.shield_outlined,
-                                size: 40,
-                                color: AppColors.background,
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(20),
+                              child: SvgPicture.asset(
+                                'assets/logo/aowl_logo.svg',
+                                width: 80,
+                                height: 80,
                               ),
                             ),
                             const SizedBox(height: 24),
                             Text(
-                              'Welcome to AShare',
+                              'Welcome to AOwl',
                               style: AppTypography.headlineMedium,
                               textAlign: TextAlign.center,
                             ),

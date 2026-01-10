@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../shared/theme/app_colors.dart';
 import '../../../shared/theme/app_typography.dart';
@@ -27,8 +29,10 @@ class _ExchangeScreenState extends ConsumerState<ExchangeScreen> {
   @override
   void initState() {
     super.initState();
+    debugPrint('[ExchangeScreen] initState() called');
     // Trigger initial sync
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      debugPrint('[ExchangeScreen] Triggering initial sync');
       ref.read(syncStateProvider.notifier).sync();
     });
   }
@@ -49,20 +53,16 @@ class _ExchangeScreenState extends ConsumerState<ExchangeScreen> {
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                gradient: AppColors.primaryGradient,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(
-                Icons.shield_outlined,
-                size: 20,
-                color: AppColors.background,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: SvgPicture.asset(
+                'assets/logo/aowl_logo.svg',
+                width: 32,
+                height: 32,
               ),
             ),
             const SizedBox(width: 10),
-            const Text('AShare'),
+            const Text('AOwl'),
           ],
         ),
         actions: [

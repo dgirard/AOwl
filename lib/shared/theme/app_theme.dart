@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'app_colors.dart';
 import 'app_typography.dart';
 
-/// Material 3 theme configuration for AShare.
+/// Material 3 theme configuration for AOwl.
 abstract final class AppTheme {
   /// Dark theme (only theme - cyberpunk aesthetic)
   static ThemeData get dark => ThemeData(

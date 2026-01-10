@@ -15,19 +15,23 @@ final appLifecycleServiceProvider = Provider<AppLifecycleService>((ref) {
 /// Service for managing app lifecycle events and session timeout.
 ///
 /// Implements:
-/// - Lock on background (mobile)
+/// - Lock on background with grace period (mobile)
 /// - Lock after inactivity timeout (desktop)
 /// - Lock on device restart
 class AppLifecycleService with WidgetsBindingObserver {
   final Ref _ref;
   Timer? _inactivityTimer;
+  Timer? _backgroundLockTimer;
   DateTime? _lastActivity;
   bool _isInitialized = false;
 
   /// Inactivity timeout duration for desktop platforms.
   static const Duration desktopTimeout = Duration(minutes: 5);
 
-  /// Whether to lock immediately on background (mobile only).
+  /// Grace period before locking on mobile (allows image picker, camera, etc.)
+  static const Duration mobileBackgroundGracePeriod = Duration(seconds: 30);
+
+  /// Whether to lock on background (mobile only).
   static bool get lockOnBackground =>
       !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
@@ -49,6 +53,7 @@ class AppLifecycleService with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _inactivityTimer?.cancel();
+    _backgroundLockTimer?.cancel();
     _isInitialized = false;
   }
 
@@ -76,16 +81,29 @@ class AppLifecycleService with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    debugPrint('[AppLifecycle] State changed to: $state');
     switch (state) {
       case AppLifecycleState.paused:
       case AppLifecycleState.inactive:
       case AppLifecycleState.hidden:
-        // On mobile, lock when app goes to background
+        // On mobile, start grace period timer before locking
+        // This allows image picker, camera, and other brief external activities
         if (lockOnBackground) {
-          _ref.read(authNotifierProvider.notifier).lock();
+          debugPrint('[AppLifecycle] Starting background lock timer (${mobileBackgroundGracePeriod.inSeconds}s grace period)');
+          _backgroundLockTimer?.cancel();
+          _backgroundLockTimer = Timer(mobileBackgroundGracePeriod, () {
+            debugPrint('[AppLifecycle] Grace period expired, locking app');
+            _ref.read(authNotifierProvider.notifier).lock();
+          });
         }
       case AppLifecycleState.resumed:
-        // Reset timer when app resumes
+        // Cancel background lock timer - user returned before grace period expired
+        if (_backgroundLockTimer != null) {
+          debugPrint('[AppLifecycle] Resumed before grace period expired, cancelling lock');
+          _backgroundLockTimer?.cancel();
+          _backgroundLockTimer = null;
+        }
+        // Reset inactivity timer when app resumes
         _resetInactivityTimer();
       case AppLifecycleState.detached:
         // App is being terminated

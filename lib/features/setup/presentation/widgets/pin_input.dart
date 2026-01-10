@@ -123,17 +123,6 @@ class PinInputState extends State<PinInput> {
     }
   }
 
-  void _onKeyEvent(int index, KeyEvent event) {
-    // Handle backspace on empty field - go to previous
-    if (event is KeyDownEvent &&
-        event.logicalKey == LogicalKeyboardKey.backspace &&
-        _controllers[index].text.isEmpty &&
-        index > 0) {
-      _controllers[index - 1].clear();
-      _focusNodes[index - 1].requestFocus();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -141,11 +130,12 @@ class PinInputState extends State<PinInput> {
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: List.generate(_pinLength, (index) {
             return Padding(
               padding: EdgeInsets.only(
-                left: index == 0 ? 0 : 8,
-                right: index == _pinLength - 1 ? 0 : 8,
+                left: index == 0 ? 0 : 4,
+                right: index == _pinLength - 1 ? 0 : 4,
               ),
               child: _PinDigitBox(
                 controller: _controllers[index],
@@ -154,7 +144,6 @@ class PinInputState extends State<PinInput> {
                 isError: widget.isError,
                 isFilled: _controllers[index].text.isNotEmpty,
                 onChanged: (value) => _onChanged(index, value),
-                onKeyEvent: (event) => _onKeyEvent(index, event),
               ),
             );
           }),
@@ -181,7 +170,6 @@ class _PinDigitBox extends StatelessWidget {
     required this.isError,
     required this.isFilled,
     required this.onChanged,
-    required this.onKeyEvent,
   });
 
   final TextEditingController controller;
@@ -190,14 +178,13 @@ class _PinDigitBox extends StatelessWidget {
   final bool isError;
   final bool isFilled;
   final ValueChanged<String> onChanged;
-  final ValueChanged<KeyEvent> onKeyEvent;
 
   @override
   Widget build(BuildContext context) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
-      width: 48,
-      height: 56,
+      width: 40,
+      height: 48,
       decoration: BoxDecoration(
         color: isEnabled ? AppColors.backgroundInput : AppColors.backgroundCard,
         borderRadius: BorderRadius.circular(12),
@@ -212,29 +199,25 @@ class _PinDigitBox extends StatelessWidget {
           width: focusNode.hasFocus || isError ? 2 : 1,
         ),
       ),
-      child: KeyboardListener(
-        focusNode: FocusNode(),
-        onKeyEvent: onKeyEvent,
-        child: TextField(
-          controller: controller,
-          focusNode: focusNode,
-          enabled: isEnabled,
-          textAlign: TextAlign.center,
-          keyboardType: TextInputType.number,
-          maxLength: 1,
-          obscureText: true,
-          obscuringCharacter: '\u2022', // Bullet character
-          style: AppTypography.pinDigit,
-          decoration: const InputDecoration(
-            counterText: '',
-            border: InputBorder.none,
-            contentPadding: EdgeInsets.zero,
-          ),
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-          ],
-          onChanged: onChanged,
+      child: TextField(
+        controller: controller,
+        focusNode: focusNode,
+        enabled: isEnabled,
+        textAlign: TextAlign.center,
+        keyboardType: TextInputType.number,
+        maxLength: 1,
+        obscureText: true,
+        obscuringCharacter: '\u2022', // Bullet character
+        style: AppTypography.pinDigit,
+        decoration: const InputDecoration(
+          counterText: '',
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.zero,
         ),
+        inputFormatters: [
+          FilteringTextInputFormatter.digitsOnly,
+        ],
+        onChanged: onChanged,
       ),
     );
   }

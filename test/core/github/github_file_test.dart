@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:ashare/core/github/models/github_file.dart';
+import 'package:aowl/core/github/models/github_file.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

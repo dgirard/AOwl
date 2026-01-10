@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// Keys for secure storage items.
@@ -44,21 +45,39 @@ class SecureStorageService {
 
   /// Stores the derived master key (base64 encoded).
   Future<void> setMasterKey(Uint8List key) async {
-    await _storage.write(
-      key: SecureStorageKeys.masterKey,
-      value: base64.encode(key),
-    );
+    debugPrint('[SecureStorage] Storing master key (${key.length} bytes)');
+    try {
+      await _storage.write(
+        key: SecureStorageKeys.masterKey,
+        value: base64.encode(key),
+      );
+      debugPrint('[SecureStorage] Master key stored successfully');
+    } catch (e) {
+      debugPrint('[SecureStorage] ERROR storing master key: $e');
+      rethrow;
+    }
   }
 
   /// Retrieves the stored master key.
   Future<Uint8List?> getMasterKey() async {
-    final value = await _storage.read(key: SecureStorageKeys.masterKey);
-    if (value == null) return null;
-    return base64.decode(value);
+    debugPrint('[SecureStorage] Retrieving master key...');
+    try {
+      final value = await _storage.read(key: SecureStorageKeys.masterKey);
+      if (value == null) {
+        debugPrint('[SecureStorage] Master key is NULL');
+        return null;
+      }
+      debugPrint('[SecureStorage] Master key retrieved (${value.length} chars base64)');
+      return base64.decode(value);
+    } catch (e) {
+      debugPrint('[SecureStorage] ERROR retrieving master key: $e');
+      return null;
+    }
   }
 
   /// Clears the master key (for logout/lock).
   Future<void> clearMasterKey() async {
+    debugPrint('[SecureStorage] Clearing master key');
     await _storage.delete(key: SecureStorageKeys.masterKey);
   }
 
@@ -236,11 +255,16 @@ class SecureStorageService {
 
   /// Clears all stored data (for vault reset).
   Future<void> clearAll() async {
+    debugPrint('[SecureStorage] Clearing ALL data');
     await _storage.deleteAll();
   }
 
   /// Clears session data but keeps vault config.
+  /// NOTE: We no longer clear the master key here because it needs to persist
+  /// for PIN unlock after app restart. Master key is only cleared on vault reset.
   Future<void> clearSession() async {
-    await clearMasterKey();
+    debugPrint('[SecureStorage] clearSession() called - master key preserved');
+    // Don't clear master key - it's needed for PIN unlock
+    // await clearMasterKey();
   }
 }

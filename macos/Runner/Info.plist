@@ -28,5 +28,9 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>AOwl needs access to your photo library to share images.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>AOwl needs access to the camera to take photos for sharing.</string>
 </dict>
 </plist>

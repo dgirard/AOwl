@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -42,8 +43,10 @@ class _NewShareCardState extends ConsumerState<NewShareCard>
   }
 
   Future<void> _pickImage(ImageSource source) async {
+    debugPrint('[NewShareCard] _pickImage called with source: $source');
     try {
       final picker = ImagePicker();
+      debugPrint('[NewShareCard] Calling picker.pickImage...');
       final image = await picker.pickImage(
         source: source,
         maxWidth: 2048,
@@ -51,14 +54,27 @@ class _NewShareCardState extends ConsumerState<NewShareCard>
         imageQuality: 85,
       );
 
+      debugPrint('[NewShareCard] picker.pickImage returned: ${image?.path ?? 'null'}');
+
       if (image != null) {
+        debugPrint('[NewShareCard] Reading image bytes from: ${image.path}');
         final bytes = await image.readAsBytes();
+        debugPrint('[NewShareCard] Image bytes read: ${bytes.length} bytes');
+        if (!mounted) {
+          debugPrint('[NewShareCard] Widget disposed while reading image, ignoring');
+          return;
+        }
         setState(() {
           _selectedImage = image;
           _imageBytes = bytes;
         });
+        debugPrint('[NewShareCard] Image state updated successfully');
+      } else {
+        debugPrint('[NewShareCard] Image picker returned null (user cancelled or permission denied)');
       }
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('[NewShareCard] ERROR in _pickImage: $e');
+      debugPrint('[NewShareCard] Stack trace: $stack');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -119,7 +135,14 @@ class _NewShareCardState extends ConsumerState<NewShareCard>
   }
 
   Future<void> _shareImage() async {
-    if (_imageBytes == null || _selectedImage == null) return;
+    debugPrint('[NewShareCard] _shareImage called');
+    debugPrint('[NewShareCard] _imageBytes is ${_imageBytes == null ? 'null' : '${_imageBytes!.length} bytes'}');
+    debugPrint('[NewShareCard] _selectedImage is ${_selectedImage == null ? 'null' : _selectedImage!.path}');
+
+    if (_imageBytes == null || _selectedImage == null) {
+      debugPrint('[NewShareCard] _shareImage aborted: imageBytes or selectedImage is null');
+      return;
+    }
 
     final label = _labelController.text.trim().isEmpty
         ? 'Image'
@@ -135,14 +158,18 @@ class _NewShareCardState extends ConsumerState<NewShareCard>
       _ => 'image/jpeg',
     };
 
+    debugPrint('[NewShareCard] Sharing image: label="$label", size=${_imageBytes!.length}, mimeType=$mimeType');
+
     setState(() => _isSharing = true);
 
     try {
+      debugPrint('[NewShareCard] Calling vaultNotifierProvider.shareImage...');
       await ref.read(vaultNotifierProvider.notifier).shareImage(
             label: label,
             imageData: _imageBytes!,
             mimeType: mimeType,
           );
+      debugPrint('[NewShareCard] shareImage completed successfully');
 
       if (!mounted) return;
 
@@ -155,7 +182,9 @@ class _NewShareCardState extends ConsumerState<NewShareCard>
           backgroundColor: AppColors.success,
         ),
       );
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('[NewShareCard] ERROR in _shareImage: $e');
+      debugPrint('[NewShareCard] Stack trace: $stack');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Dark cyberpunk color palette for AShare.
+/// Dark cyberpunk color palette for AOwl.
 abstract final class AppColors {
   // Primary colors - Neon cyan accent
   static const Color primary = Color(0xFF00E5FF);

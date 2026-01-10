@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 
-import 'package:ashare/core/crypto/aes_gcm_cipher.dart';
-import 'package:ashare/core/crypto/crypto_errors.dart';
-import 'package:ashare/core/utils/result.dart';
+import 'package:aowl/core/crypto/aes_gcm_cipher.dart';
+import 'package:aowl/core/crypto/crypto_errors.dart';
+import 'package:aowl/core/utils/result.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

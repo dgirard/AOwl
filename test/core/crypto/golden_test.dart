@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:ashare/core/crypto/aes_gcm_cipher.dart';
-import 'package:ashare/core/crypto/crypto_errors.dart';
-import 'package:ashare/core/crypto/crypto_service.dart';
-import 'package:ashare/core/crypto/secure_random.dart';
-import 'package:ashare/core/utils/result.dart';
+import 'package:aowl/core/crypto/aes_gcm_cipher.dart';
+import 'package:aowl/core/crypto/crypto_errors.dart';
+import 'package:aowl/core/crypto/crypto_service.dart';
+import 'package:aowl/core/crypto/secure_random.dart';
+import 'package:aowl/core/utils/result.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Deterministic random provider for golden tests.
@@ -58,7 +58,7 @@ void main() {
         final cipher = AesGcmCipher(random: deterministicRandom);
 
         // Known plaintext
-        final plaintext = Uint8List.fromList(utf8.encode('Hello, AShare!'));
+        final plaintext = Uint8List.fromList(utf8.encode('Hello, AOwl!'));
 
         final result = cipher.encrypt(plaintext: plaintext, key: key);
         expect(result.isSuccess, isTrue);

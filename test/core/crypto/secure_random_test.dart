@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:ashare/core/crypto/secure_random.dart';
+import 'package:aowl/core/crypto/secure_random.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

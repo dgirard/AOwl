@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../domain/vault_index.dart';
@@ -64,33 +65,50 @@ class SyncNotifier extends StateNotifier<SyncState> {
 
   /// Triggers a sync operation.
   Future<void> sync() async {
-    if (state.status == SyncStatus.syncing) return;
+    debugPrint('[SyncProvider] sync() called, current status: ${state.status}');
+    if (state.status == SyncStatus.syncing) {
+      debugPrint('[SyncProvider] Already syncing, skipping');
+      return;
+    }
 
     state = state.copyWith(status: SyncStatus.syncing, message: 'Syncing...');
+    debugPrint('[SyncProvider] State set to syncing');
 
     try {
+      debugPrint('[SyncProvider] Calling vaultNotifierProvider.sync()...');
       await _ref.read(vaultNotifierProvider.notifier).sync();
+      debugPrint('[SyncProvider] vaultNotifierProvider.sync() completed');
 
       final vaultState = _ref.read(vaultNotifierProvider).valueOrNull;
+      debugPrint('[SyncProvider] Vault state after sync: $vaultState');
 
       if (vaultState is VaultStateSynced) {
+        debugPrint('[SyncProvider] Setting state to synced');
         state = SyncState(
           status: SyncStatus.synced,
           lastSyncAt: vaultState.lastSyncAt,
         );
       } else if (vaultState is VaultStateError) {
+        debugPrint('[SyncProvider] Setting state to error: ${vaultState.error.message}');
         state = SyncState(
           status: SyncStatus.error,
           message: vaultState.error.message,
           hasConflict: vaultState.error is VaultConflictError,
         );
+      } else {
+        debugPrint('[SyncProvider] WARNING: Unexpected vault state type: ${vaultState.runtimeType}');
+        // Reset to idle if state is unexpected
+        state = state.copyWith(status: SyncStatus.idle, message: null);
       }
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('[SyncProvider] Exception during sync: $e');
+      debugPrint('[SyncProvider] Stack trace: $stack');
       state = SyncState(
         status: SyncStatus.error,
         message: e.toString(),
       );
     }
+    debugPrint('[SyncProvider] sync() finished, final status: ${state.status}');
   }
 
   /// Handles a conflict by merging changes.

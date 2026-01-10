@@ -1,4 +1,4 @@
-import 'package:ashare/features/unlock/presentation/unlock_screen.dart';
+import 'package:aowl/features/unlock/presentation/unlock_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -31,7 +31,7 @@ void main() {
       expect(find.byType(UnlockScreen), findsOneWidget);
     });
 
-    testWidgets('displays AShare branding', (tester) async {
+    testWidgets('displays AOwl branding', (tester) async {
       tester.view.physicalSize = testScreenSize;
       tester.view.devicePixelRatio = 1.0;
 
@@ -51,7 +51,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Should show app name
-      expect(find.text('AShare'), findsOneWidget);
+      expect(find.text('AOwl'), findsOneWidget);
     });
 
     testWidgets('shows PIN entry prompt', (tester) async {

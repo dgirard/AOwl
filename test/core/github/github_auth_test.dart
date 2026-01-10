@@ -1,4 +1,4 @@
-import 'package:ashare/core/github/github_auth.dart';
+import 'package:aowl/core/github/github_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

@@ -1,4 +1,4 @@
-import 'package:ashare/features/exchange/presentation/exchange_screen.dart';
+import 'package:aowl/features/exchange/presentation/exchange_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -20,7 +20,7 @@ void main() {
       expect(find.byType(ExchangeScreen), findsOneWidget);
     });
 
-    testWidgets('displays AShare header', (tester) async {
+    testWidgets('displays AOwl header', (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: MaterialApp(
@@ -32,7 +32,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Should show app name in header
-      expect(find.text('AShare'), findsOneWidget);
+      expect(find.text('AOwl'), findsOneWidget);
     });
 
     testWidgets('shows shield icon in header', (tester) async {

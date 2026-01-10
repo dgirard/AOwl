@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import '../config/vault_config.dart';
 import '../utils/result.dart';
 import 'github_auth.dart';
 import 'github_client.dart';
@@ -12,15 +13,15 @@ import 'models/github_file.dart';
 ///
 /// The vault structure:
 /// ```
-/// .ashare/
+/// .aowl/
 ///   config.yaml      - KDF parameters, encryption settings
 ///   index.enc        - Encrypted index of all entries
 ///   data/
 ///     {uuid}.enc     - Encrypted entry files
 /// ```
 class VaultRepository {
-  static const String vaultDir = '.ashare';
-  static const String configFile = '$vaultDir/config.yaml';
+  static const String vaultDir = '.aowl';
+  static const String configFile = '$vaultDir/config.json';
   static const String indexFile = '$vaultDir/index.enc';
   static const String dataDir = '$vaultDir/data';
 
@@ -94,10 +95,20 @@ class VaultRepository {
     return downloadFile(indexFile);
   }
 
-  /// Downloads the config file.
-  Future<Result<String, GitHubError>> downloadConfig() async {
+  /// Downloads the vault config (contains salt for key derivation).
+  Future<Result<VaultConfig, GitHubError>> downloadVaultConfig() async {
     final result = await downloadFile(configFile);
-    return result.map((bytes) => utf8.decode(bytes));
+    return result.map((bytes) => VaultConfig.fromJsonString(utf8.decode(bytes)));
+  }
+
+  /// Gets the current SHA of the config file.
+  Future<Result<String?, GitHubError>> getConfigSha() async {
+    final result = await getFileInfo(configFile);
+    return switch (result) {
+      Success(:final value) => Success(value.sha),
+      Failure(error: NotFound _) => const Success(null),
+      Failure(:final error) => Failure(error),
+    };
   }
 
   /// Downloads an encrypted entry file.
@@ -146,15 +157,15 @@ class VaultRepository {
     }
   }
 
-  /// Uploads the config file.
-  Future<Result<GitHubFile, GitHubError>> uploadConfig({
-    required String content,
+  /// Uploads the vault config (contains salt for key derivation).
+  Future<Result<GitHubFile, GitHubError>> uploadVaultConfig({
+    required VaultConfig config,
     String? sha,
   }) async {
     return uploadFile(
       path: configFile,
-      content: Uint8List.fromList(utf8.encode(content)),
-      message: sha == null ? 'Initialize AShare vault' : 'Update config',
+      content: Uint8List.fromList(utf8.encode(config.toJsonString())),
+      message: sha == null ? 'Initialize AOwl vault' : 'Update config',
       sha: sha,
     );
   }

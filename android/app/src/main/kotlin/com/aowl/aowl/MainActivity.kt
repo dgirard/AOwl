@@ -1,4 +1,4 @@
-package com.ashare.ashare
+package com.aowl.aowl
 
 import io.flutter.embedding.android.FlutterActivity
 

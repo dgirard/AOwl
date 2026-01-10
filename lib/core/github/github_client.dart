@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 import 'github_auth.dart';
 import 'github_errors.dart';
@@ -54,6 +55,7 @@ class GitHubClient {
     String path, {
     Map<String, dynamic>? queryParameters,
   }) async {
+    debugPrint('[GitHubClient] GET $path');
     return _withRetry(() => _dio.get<T>(
           path,
           queryParameters: queryParameters,
@@ -83,8 +85,10 @@ class GitHubClient {
     var attempts = 0;
     while (true) {
       attempts++;
+      debugPrint('[GitHubClient] Attempt $attempts of $maxRetries');
       try {
         final response = await request();
+        debugPrint('[GitHubClient] Response status: ${response.statusCode}');
 
         // Check for rate limit errors
         if (response.statusCode == 403 || response.statusCode == 429) {
@@ -92,27 +96,36 @@ class GitHubClient {
           final message = (data is Map)
               ? data['message']?.toString() ?? ''
               : '';
+          debugPrint('[GitHubClient] Rate limit check - message: $message');
           if (message.contains('rate limit') ||
               response.statusCode == 429) {
+            debugPrint('[GitHubClient] Rate limit hit!');
             throw _mapError(response);
           }
         }
 
         // Check for server errors that might be retryable
         if (response.statusCode != null && response.statusCode! >= 500) {
+          debugPrint('[GitHubClient] Server error ${response.statusCode}, attempt $attempts');
           if (attempts < maxRetries) {
+            debugPrint('[GitHubClient] Retrying after ${retryDelay * attempts}...');
             await Future.delayed(retryDelay * attempts);
             continue;
           }
+          debugPrint('[GitHubClient] Max retries reached for server error');
           throw _mapError(response);
         }
 
+        debugPrint('[GitHubClient] Request successful');
         return response;
       } on DioException catch (e) {
+        debugPrint('[GitHubClient] DioException: ${e.type} - ${e.message}');
         if (attempts < maxRetries && _isRetryable(e)) {
+          debugPrint('[GitHubClient] Retryable error, retrying after ${retryDelay * attempts}...');
           await Future.delayed(retryDelay * attempts);
           continue;
         }
+        debugPrint('[GitHubClient] Non-retryable error or max retries reached');
         throw _mapDioError(e);
       }
     }

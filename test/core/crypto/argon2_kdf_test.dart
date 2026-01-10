@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 
-import 'package:ashare/core/crypto/argon2_kdf.dart';
-import 'package:ashare/core/crypto/crypto_errors.dart';
-import 'package:ashare/core/utils/result.dart';
+import 'package:aowl/core/crypto/argon2_kdf.dart';
+import 'package:aowl/core/crypto/crypto_errors.dart';
+import 'package:aowl/core/utils/result.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

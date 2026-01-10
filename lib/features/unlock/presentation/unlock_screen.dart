@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../shared/theme/app_colors.dart';
 import '../../../shared/theme/app_typography.dart';
@@ -159,27 +160,30 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
 
     return Scaffold(
       body: SafeArea(
-        child: Column(
-          children: [
-            const Spacer(flex: 2),
+        child: SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: MediaQuery.of(context).size.height -
+                  MediaQuery.of(context).padding.top -
+                  MediaQuery.of(context).padding.bottom,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+            const SizedBox(height: 40),
 
-            // App icon and title
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                gradient: AppColors.primaryGradient,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Icon(
-                Icons.shield_outlined,
-                size: 40,
-                color: AppColors.background,
+            // App icon and title - Owl logo
+            ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: SvgPicture.asset(
+                'assets/logo/aowl_logo.svg',
+                width: 80,
+                height: 80,
               ),
             ),
             const SizedBox(height: 24),
             Text(
-              'AShare',
+              'AOwl',
               style: AppTypography.headlineMedium,
             ),
             const SizedBox(height: 8),
@@ -213,7 +217,7 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
               ),
             ],
 
-            const Spacer(flex: 1),
+            const SizedBox(height: 32),
 
             // PIN pad
             Padding(
@@ -226,7 +230,7 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
               ),
             ),
 
-            const Spacer(flex: 2),
+            const SizedBox(height: 32),
 
             // Forgot PIN link
             TextButton.icon(
@@ -235,7 +239,9 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
               label: const Text('Forgot PIN?'),
             ),
             const SizedBox(height: 24),
-          ],
+              ],
+            ),
+          ),
         ),
       ),
     );

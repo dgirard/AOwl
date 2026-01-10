@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/crypto/crypto_service.dart';
@@ -42,6 +43,7 @@ class VaultNotifier extends AsyncNotifier<VaultState> {
 
   @override
   FutureOr<VaultState> build() async {
+    debugPrint('[VaultProvider] build() called');
     _storage = ref.read(secureStorageProvider);
     _crypto = ref.read(cryptoServiceProvider);
     _cache = ref.read(localCacheProvider);
@@ -51,15 +53,19 @@ class VaultNotifier extends AsyncNotifier<VaultState> {
 
     // Watch auth state for master key
     final authState = ref.watch(authNotifierProvider);
+    debugPrint('[VaultProvider] Auth state: ${authState.value?.runtimeType}');
     if (authState.hasValue && authState.value is AuthStateUnlocked) {
       _masterKey = (authState.value as AuthStateUnlocked).masterKey;
+      debugPrint('[VaultProvider] Master key obtained');
     } else {
       _masterKey = null;
+      debugPrint('[VaultProvider] No master key, returning VaultStateIdle');
       return const VaultStateIdle();
     }
 
     // Initialize repository
     await _initRepository();
+    debugPrint('[VaultProvider] Repository initialized, returning VaultStateIdle');
 
     return const VaultStateIdle();
   }
@@ -80,7 +86,28 @@ class VaultNotifier extends AsyncNotifier<VaultState> {
 
   /// Syncs the vault index from GitHub.
   Future<void> sync() async {
+    debugPrint('[VaultProvider] sync() called');
+
+    // Fix race condition: get master key from auth state if not set
     if (_masterKey == null) {
+      final authState = ref.read(authNotifierProvider);
+      if (authState.hasValue && authState.value is AuthStateUnlocked) {
+        _masterKey = (authState.value as AuthStateUnlocked).masterKey;
+        debugPrint('[VaultProvider] Master key obtained from auth state');
+      }
+    }
+
+    // Initialize repository if needed
+    if (_repository == null) {
+      debugPrint('[VaultProvider] Repository null, initializing...');
+      await _initRepository();
+    }
+
+    debugPrint('[VaultProvider] _masterKey is ${_masterKey == null ? 'null' : 'set'}');
+    debugPrint('[VaultProvider] _repository is ${_repository == null ? 'null' : 'set'}');
+
+    if (_masterKey == null) {
+      debugPrint('[VaultProvider] No master key, setting error state');
       state = const AsyncValue.data(
         VaultStateError(VaultDecryptionError('Not authenticated')),
       );
@@ -88,13 +115,12 @@ class VaultNotifier extends AsyncNotifier<VaultState> {
     }
 
     if (_repository == null) {
-      await _initRepository();
-      if (_repository == null) {
-        state = const AsyncValue.data(VaultStateError(VaultNotInitializedError()));
-        return;
-      }
+      debugPrint('[VaultProvider] Repository still null after init, setting error state');
+      state = const AsyncValue.data(VaultStateError(VaultNotInitializedError()));
+      return;
     }
 
+    debugPrint('[VaultProvider] Setting state to VaultStateSyncing (downloading)');
     state = const AsyncValue.data(VaultStateSyncing(
         message: 'Downloading index...',
         operation: SyncOperation.downloading,
@@ -102,50 +128,62 @@ class VaultNotifier extends AsyncNotifier<VaultState> {
 
     try {
       // Download encrypted index
+      debugPrint('[VaultProvider] Downloading index from GitHub...');
       final indexResult = await _repository!.downloadIndex();
+      debugPrint('[VaultProvider] Download result: ${indexResult.isSuccess ? 'success' : 'failure'}');
 
       if (indexResult.isFailure) {
         final error = (indexResult as Failure<Uint8List, GitHubError>).error;
+        debugPrint('[VaultProvider] Download failed with error: $error');
         if (error is NotFound) {
           // Vault not initialized - create empty index
+          debugPrint('[VaultProvider] Index not found, creating empty vault');
           state = AsyncValue.data(VaultStateSynced(
             index: VaultIndex.empty(),
             lastSyncAt: DateTime.now(),
           ));
           return;
         }
+        debugPrint('[VaultProvider] Setting error state for download failure');
         state = AsyncValue.data(VaultStateError(_mapGitHubError(error)));
         return;
       }
 
       final encryptedIndex = (indexResult as Success<Uint8List, GitHubError>).value;
+      debugPrint('[VaultProvider] Downloaded ${encryptedIndex.length} bytes');
 
       // Decrypt index
+      debugPrint('[VaultProvider] Setting state to VaultStateSyncing (decrypting)');
       state = const AsyncValue.data(VaultStateSyncing(
         message: 'Decrypting...',
         operation: SyncOperation.decrypting,
       ));
 
+      debugPrint('[VaultProvider] Decrypting index...');
       final decryptResult = _crypto.decrypt(
         encryptedData: encryptedIndex,
         key: _masterKey!,
       );
 
       if (decryptResult.isFailure) {
+        debugPrint('[VaultProvider] Decryption failed, trying backup...');
         // Try backup
         final backup = _cache.getIndexBackup();
         if (backup != null) {
           try {
             final index = VaultIndex.fromJsonString(utf8.decode(backup));
+            debugPrint('[VaultProvider] Backup restored successfully');
             state = AsyncValue.data(VaultStateSynced(
               index: index,
               lastSyncAt: DateTime.now(),
             ));
             return;
-          } catch (_) {
+          } catch (e) {
+            debugPrint('[VaultProvider] Backup restore also failed: $e');
             // Backup also failed
           }
         }
+        debugPrint('[VaultProvider] Setting decryption error state');
         state = const AsyncValue.data(
           VaultStateError(VaultDecryptionError('Failed to decrypt index. Wrong password?')),
         );
@@ -154,16 +192,20 @@ class VaultNotifier extends AsyncNotifier<VaultState> {
 
       final decryptedBytes = (decryptResult as Success<Uint8List, dynamic>).value;
       final jsonString = utf8.decode(decryptedBytes);
+      debugPrint('[VaultProvider] Decrypted index JSON: ${jsonString.substring(0, jsonString.length > 100 ? 100 : jsonString.length)}...');
       final index = VaultIndex.fromJsonString(jsonString);
+      debugPrint('[VaultProvider] Parsed index with ${index.count} entries');
 
       // Cache decrypted index as backup
       await _cache.cacheIndexBackup(decryptedBytes);
 
       // Get index SHA
+      debugPrint('[VaultProvider] Getting index SHA...');
       final shaResult = await _repository!.getIndexSha();
       final sha = shaResult.isSuccess
           ? (shaResult as Success<String?, GitHubError>).value
           : null;
+      debugPrint('[VaultProvider] Index SHA: $sha');
 
       // Update storage
       if (sha != null) {
@@ -171,12 +213,16 @@ class VaultNotifier extends AsyncNotifier<VaultState> {
       }
       await _storage.setLastSyncAt(DateTime.now());
 
+      debugPrint('[VaultProvider] Setting state to VaultStateSynced');
       state = AsyncValue.data(VaultStateSynced(
         index: index,
         indexSha: sha,
         lastSyncAt: DateTime.now(),
       ));
-    } catch (e) {
+      debugPrint('[VaultProvider] sync() completed successfully');
+    } catch (e, stack) {
+      debugPrint('[VaultProvider] Exception during sync: $e');
+      debugPrint('[VaultProvider] Stack: $stack');
       state = AsyncValue.data(VaultStateError(VaultNetworkError(e.toString())));
     }
   }
@@ -200,12 +246,14 @@ class VaultNotifier extends AsyncNotifier<VaultState> {
     required Uint8List imageData,
     required String mimeType,
   }) async {
+    debugPrint('[VaultProvider] shareImage called: label="$label", size=${imageData.length}, mimeType=$mimeType');
     await _shareEntry(
       type: EntryType.image,
       label: label,
       content: imageData,
       mimeType: mimeType,
     );
+    debugPrint('[VaultProvider] shareImage completed');
   }
 
   /// Shares an entry (internal implementation).
@@ -215,7 +263,10 @@ class VaultNotifier extends AsyncNotifier<VaultState> {
     required Uint8List content,
     String? mimeType,
   }) async {
+    debugPrint('[VaultProvider] _shareEntry called: type=$type, label="$label", size=${content.length}');
+
     if (_masterKey == null || _repository == null) {
+      debugPrint('[VaultProvider] _shareEntry: Not authenticated (_masterKey=${_masterKey == null ? 'null' : 'set'}, _repository=${_repository == null ? 'null' : 'set'})');
       state = const AsyncValue.data(
         VaultStateError(VaultDecryptionError('Not authenticated')),
       );
@@ -223,7 +274,9 @@ class VaultNotifier extends AsyncNotifier<VaultState> {
     }
 
     final currentState = state.valueOrNull;
+    debugPrint('[VaultProvider] _shareEntry: currentState is ${currentState.runtimeType}');
     if (currentState is! VaultStateSynced) {
+      debugPrint('[VaultProvider] _shareEntry: Vault not synced, returning error');
       state = const AsyncValue.data(
         VaultStateError(VaultNotInitializedError()),
       );

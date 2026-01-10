@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 
-/// Styled error dialog for AShare.
+/// Styled error dialog for AOwl.
 class ErrorDialog extends StatelessWidget {
   const ErrorDialog({
     super.key,

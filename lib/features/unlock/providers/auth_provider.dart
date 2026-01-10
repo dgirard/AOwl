@@ -1,10 +1,14 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/config/vault_config.dart';
 import '../../../core/crypto/crypto_service.dart';
 import '../../../core/github/github_auth.dart';
+import '../../../core/github/github_errors.dart';
+import '../../../core/github/vault_repository.dart';
 import '../../../core/storage/secure_storage_service.dart';
 import '../../../core/utils/result.dart';
 import 'auth_state.dart';
@@ -60,6 +64,10 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   ///
   /// Called during first-time setup.
   /// Can accept either a full `repoUrl` or separate `repoOwner` and `repoName`.
+  ///
+  /// The salt is shared across devices via GitHub:
+  /// - If config.json exists on GitHub, use its salt
+  /// - If not, generate new salt and upload to GitHub
   Future<void> setupVault({
     String? repoUrl,
     String? repoOwner,
@@ -112,8 +120,37 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
         return;
       }
 
-      // Generate salt
-      final salt = _crypto.generateSalt();
+      // Create repository to check for existing config
+      final auth = GitHubAuth(owner: owner, repo: repo, token: actualToken);
+      final repository = VaultRepository(auth: auth);
+
+      // Try to get existing salt from GitHub, or create new one
+      Uint8List salt;
+      final configResult = await repository.downloadVaultConfig();
+
+      if (configResult.isSuccess) {
+        // Use existing salt from GitHub
+        final config = (configResult as Success<VaultConfig, GitHubError>).value;
+        salt = config.salt;
+        debugPrint('[AuthProvider] Using existing salt from GitHub');
+      } else {
+        // Generate new salt and upload to GitHub
+        salt = _crypto.generateSalt();
+        final newConfig = VaultConfig.create(salt: salt);
+        final uploadResult = await repository.uploadVaultConfig(config: newConfig);
+
+        if (uploadResult.isFailure) {
+          final error = (uploadResult as Failure).error as GitHubError;
+          state = AsyncValue.data(
+            AuthStateError(SetupValidationError('Failed to upload config: $error')),
+          );
+          repository.close();
+          return;
+        }
+        debugPrint('[AuthProvider] Created new salt and uploaded to GitHub');
+      }
+
+      repository.close();
 
       // Derive master key
       final keyResult = await _crypto.deriveKey(
@@ -154,9 +191,12 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   ///
   /// Uses constant-time comparison to prevent timing attacks.
   Future<void> unlockWithPin(String pin) async {
+    debugPrint('[AuthProvider] unlockWithPin() called');
+
     // Check for lockout
     if (await _storage.isLockedOut()) {
       final remaining = await _storage.getRemainingLockout();
+      debugPrint('[AuthProvider] User is locked out');
       state = AsyncValue.data(
         AuthStateError(LockedOutError(remaining ?? lockoutDuration)),
       );
@@ -169,21 +209,26 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       // Get stored PIN hash
       final storedHash = await _storage.getPinHash();
       if (storedHash == null) {
+        debugPrint('[AuthProvider] No stored PIN hash - not configured');
         state = const AsyncValue.data(AuthStateNotConfigured());
         return;
       }
 
       // SECURITY: Constant-time comparison
       final isValid = _crypto.verifyPinHash(pin, storedHash);
+      debugPrint('[AuthProvider] PIN verification result: $isValid');
 
       if (!isValid) {
+        debugPrint('[AuthProvider] Wrong PIN');
         await _handleFailedAttempt();
         return;
       }
 
-      // PIN is correct - derive master key
+      // PIN is correct - retrieve master key
+      debugPrint('[AuthProvider] PIN correct, retrieving master key...');
       final salt = await _storage.getSalt();
       if (salt == null) {
+        debugPrint('[AuthProvider] Salt not found');
         state = const AsyncValue.data(
           AuthStateError(StorageError('Salt not found')),
         );
@@ -196,18 +241,23 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       final masterKey = await _storage.getMasterKey();
       if (masterKey == null) {
         // Master key not cached - need full re-authentication
+        debugPrint('[AuthProvider] Master key is NULL - session expired');
         state = const AsyncValue.data(
           AuthStateError(StorageError('Session expired. Please re-authenticate.')),
         );
         return;
       }
 
+      debugPrint('[AuthProvider] Master key retrieved (${masterKey.length} bytes)');
+
       // Success - clear failed attempts
       await _storage.clearFailedAttempts();
       await _storage.clearLockout();
 
+      debugPrint('[AuthProvider] Unlock successful!');
       state = AsyncValue.data(AuthStateUnlocked(masterKey: masterKey));
     } catch (e) {
+      debugPrint('[AuthProvider] Error in unlockWithPin: $e');
       state = AsyncValue.data(AuthStateError(StorageError(e.toString())));
     }
   }

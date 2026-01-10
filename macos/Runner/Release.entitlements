@@ -6,9 +6,15 @@
 	<true/>
 	<key>com.apple.security.network.client</key>
 	<true/>
+	<key>com.apple.security.files.user-selected.read-only</key>
+	<true/>
+	<key>com.apple.security.assets.pictures.read-only</key>
+	<true/>
+	<key>com.apple.security.device.camera</key>
+	<true/>
 	<key>keychain-access-groups</key>
 	<array>
-		<string>$(AppIdentifierPrefix)com.ashare.ashare</string>
+		<string>$(AppIdentifierPrefix)com.didiergirard.aowl</string>
 	</array>
 </dict>
 </plist>

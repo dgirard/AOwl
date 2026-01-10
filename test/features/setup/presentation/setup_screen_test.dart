@@ -1,4 +1,4 @@
-import 'package:ashare/features/setup/presentation/setup_screen.dart';
+import 'package:aowl/features/setup/presentation/setup_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -17,7 +17,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify header elements
-      expect(find.text('Welcome to AShare'), findsOneWidget);
+      expect(find.text('Welcome to AOwl'), findsOneWidget);
       expect(find.text('Secure cross-platform sharing'), findsOneWidget);
     });
 
