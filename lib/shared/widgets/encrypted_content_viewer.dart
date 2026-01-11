@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -102,7 +103,7 @@ class _EncryptedContentViewerState
       setState(() {
         _decryptedContent = content;
         if (widget.entry.isText) {
-          _textContent = String.fromCharCodes(content);
+          _textContent = utf8.decode(content);
         }
         _isLoading = false;
       });
