@@ -188,7 +188,34 @@ class VaultNotifier extends AsyncNotifier<VaultState> {
       }
 
       final decryptedBytes = (decryptResult as Success<Uint8List, dynamic>).value;
-      final jsonString = utf8.decode(decryptedBytes);
+
+      // Decode UTF-8 with error handling
+      String jsonString;
+      try {
+        jsonString = utf8.decode(decryptedBytes);
+      } on FormatException catch (e) {
+        debugPrint('[VaultProvider] UTF-8 decode failed: $e');
+        // Try backup
+        final backup = _cache.getIndexBackup();
+        if (backup != null) {
+          try {
+            final index = VaultIndex.fromJsonString(utf8.decode(backup));
+            debugPrint('[VaultProvider] Backup restored after UTF-8 error');
+            state = AsyncValue.data(VaultStateSynced(
+              index: index,
+              lastSyncAt: DateTime.now(),
+            ));
+            return;
+          } catch (e) {
+            debugPrint('[VaultProvider] Backup restore also failed: $e');
+          }
+        }
+        state = const AsyncValue.data(
+          VaultStateError(VaultDecryptionError('Failed to decode index. Data may be corrupted.')),
+        );
+        return;
+      }
+
       debugPrint('[VaultProvider] Decrypted index JSON: ${jsonString.substring(0, jsonString.length > 100 ? 100 : jsonString.length)}...');
       final index = VaultIndex.fromJsonString(jsonString);
       debugPrint('[VaultProvider] Parsed index with ${index.count} entries');
