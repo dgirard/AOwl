@@ -201,8 +201,17 @@ class VaultNotifier extends AsyncNotifier<VaultState> {
           try {
             final index = VaultIndex.fromJsonString(utf8.decode(backup));
             debugPrint('[VaultProvider] Backup restored after UTF-8 error');
+
+            // Still need to get SHA to allow updates
+            final shaResult = await _repository!.getIndexSha();
+            final sha = shaResult.isSuccess
+                ? (shaResult as Success<String?, GitHubError>).value
+                : null;
+            debugPrint('[VaultProvider] Got SHA for backup restore: $sha');
+
             state = AsyncValue.data(VaultStateSynced(
               index: index,
+              indexSha: sha,
               lastSyncAt: DateTime.now(),
             ));
             return;
