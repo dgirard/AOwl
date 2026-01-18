@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -21,6 +22,7 @@ class UnlockScreen extends ConsumerStatefulWidget {
 
 class _UnlockScreenState extends ConsumerState<UnlockScreen> {
   final _pinInputKey = GlobalKey<PinInputState>();
+  final _focusNode = FocusNode();
   String _pin = '';
   bool _isLoading = false;
   bool _hasError = false;
@@ -28,9 +30,57 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
   Duration? _remainingLockout;
 
   @override
+  void initState() {
+    super.initState();
+    // Request focus for keyboard input on desktop
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _focusNode.requestFocus();
+    });
+  }
+
+  @override
   void dispose() {
     _lockoutTimer?.cancel();
+    _focusNode.dispose();
     super.dispose();
+  }
+
+  /// Handle keyboard input for PIN entry (desktop).
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (_isLoading || _remainingLockout != null) return KeyEventResult.ignored;
+
+    final key = event.logicalKey;
+
+    // Handle digit keys (0-9)
+    if (key.keyId >= LogicalKeyboardKey.digit0.keyId &&
+        key.keyId <= LogicalKeyboardKey.digit9.keyId) {
+      final digit = (key.keyId - LogicalKeyboardKey.digit0.keyId).toString();
+      _handleDigit(digit);
+      return KeyEventResult.handled;
+    }
+
+    // Handle numpad keys (0-9)
+    if (key.keyId >= LogicalKeyboardKey.numpad0.keyId &&
+        key.keyId <= LogicalKeyboardKey.numpad9.keyId) {
+      final digit = (key.keyId - LogicalKeyboardKey.numpad0.keyId).toString();
+      _handleDigit(digit);
+      return KeyEventResult.handled;
+    }
+
+    // Handle backspace
+    if (key == LogicalKeyboardKey.backspace) {
+      _handleBackspace();
+      return KeyEventResult.handled;
+    }
+
+    // Handle delete/clear
+    if (key == LogicalKeyboardKey.delete || key == LogicalKeyboardKey.escape) {
+      _handleClear();
+      return KeyEventResult.handled;
+    }
+
+    return KeyEventResult.ignored;
   }
 
   void _startLockoutTimer(Duration remaining) {
@@ -158,8 +208,14 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
 
     final isLockedOut = _remainingLockout != null;
 
-    return Scaffold(
-      body: SafeArea(
+    return Focus(
+      focusNode: _focusNode,
+      autofocus: true,
+      onKeyEvent: _handleKeyEvent,
+      child: GestureDetector(
+        onTap: () => _focusNode.requestFocus(), // Refocus on tap
+        child: Scaffold(
+          body: SafeArea(
         child: SingleChildScrollView(
           child: ConstrainedBox(
             constraints: BoxConstraints(
@@ -242,6 +298,8 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
               ],
             ),
           ),
+        ),
+      ),
         ),
       ),
     );
